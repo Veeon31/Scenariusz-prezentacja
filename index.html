@@ -149,14 +149,6 @@
             font-size: 1.05rem;
         }
 
-        /* Styl podświetlenia wątpliwości */
-        .doubt-highlight {
-            background-color: #fef08a !important; /* Żółty tło */
-            border-bottom: 2px dashed #eab308; /* Pomarańczowa linia */
-            padding: 0 2px;
-            border-radius: 2px;
-        }
-
         /* Stylizacja do druku */
         @media print {
             body {
@@ -289,7 +281,9 @@
             } else if (status === 'saved') {
                 statusEl.innerHTML = '<i data-lucide="check-circle" width="16" height="16" style="color: #10b981;"></i> Zapisano w chmurze';
             } else if (status === 'error') {
-                statusEl.innerHTML = '<i data-lucide="alert-triangle" width="16" height="16" style="color: #ef4444;"></i> Błąd zapisu';
+                statusEl.innerHTML = '<i data-lucide="alert-triangle" width="16" height="16" style="color: #ef4444;"></i> Brak uprawnień do bazy (Reguły)';
+            } else if (status === 'auth-error') {
+                statusEl.innerHTML = '<i data-lucide="shield-alert" width="16" height="16" style="color: #ef4444;"></i> Błąd autoryzacji (Sprawdź Auth)';
             } else if (status === 'connected') {
                 statusEl.innerHTML = '<i data-lucide="cloud-snow" width="16" height="16"></i> Gotowe do edycji';
             }
@@ -303,14 +297,18 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Konfiguracja pobierana ze środowiska
-        let firebaseConfig = {};
-        try {
-            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            };
-        } catch(e) {}
+        // TUTAJ ZNAJDUJĄ SIĘ TWOJE KLUCZE FIREBASE:
+        const firebaseConfig = {
+            apiKey: "AIzaSyADPpYLYbKSjreYovVyJhmfSKvfLtONWA0",
+            authDomain: "scenariusz-55eae.firebaseapp.com",
+            projectId: "scenariusz-55eae",
+            storageBucket: "scenariusz-55eae.firebasestorage.app",
+            messagingSenderId: "333833727017",
+            appId: "1:333833727017:web:a742e52df5ddcb2b078038",
+            measurementId: "G-51V2FKLL2M"
+        };
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'skrypt-prezentacji-app';
+        const appId = 'skrypt-prezentacji-app';
 
         if(Object.keys(firebaseConfig).length > 0) {
             const app = initializeApp(firebaseConfig);
@@ -327,17 +325,14 @@
             let currentUser = null;
             let unsubscribeSnapshot = null;
 
-            // Inicjalizacja autoryzacji używając tokenu systemowego
+            // Inicjalizacja autoryzacji
             const initAuth = async () => {
                 try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
+                    // Logowanie anonimowe
+                    await signInAnonymously(auth);
                 } catch (e) {
-                    setStatus('error');
-                    console.error("Błąd uwierzytelniania:", e);
+                    setStatus('auth-error');
+                    console.error("Błąd uwierzytelniania. Upewnij się, że włączyłeś logowanie 'Anonimowe' w Firebase Authentication:", e);
                 }
             };
 
