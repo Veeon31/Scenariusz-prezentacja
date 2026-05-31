@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skrypt Prezentacji: Gospodarka odpadami tekstylnymi</title>
+    <!-- Ikony -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary-color: #10b981; 
+            --text-color: #333333;
+            --bg-color: #f9fafb;
+            --container-bg: #ffffff;
+            --toolbar-bg: #1f2937;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            padding-top: 80px; /* Miejsce na toolbar */
+        }
+
+        /* Pasek narzędzi do edycji */
+        .toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: var(--toolbar-bg);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .toolbar button {
+            background-color: #374151;
+            color: white;
+            border: 1px solid #4b5563;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .toolbar button:hover {
+            background-color: #4b5563;
+        }
+
+        .toolbar button.highlight-btn {
+            background-color: #fbbf24;
+            color: #78350f;
+            border-color: #f59e0b;
+            font-weight: bold;
+        }
+        .toolbar button.highlight-btn:hover {
+            background-color: #f59e0b;
+        }
+
+        .sync-status {
+            font-size: 0.85rem;
+            color: #9ca3af;
+            margin-left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            background-color: var(--container-bg);
+            padding: 3rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            outline: none; /* Usuwa obramowanie przy kliknięciu w trybie edycji */
+        }
+
+        /* Subtelny wskaźnik, że można edytować */
+        #editor-content {
+            min-height: 50vh;
+            outline: none;
+            transition: background-color 0.3s;
+        }
+        #editor-content:focus {
+            background-color: #f8fafc;
+            border-radius: 8px;
+            box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.2);
+            padding: 10px -10px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #111827;
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #6b7280;
+            font-size: 1.1rem;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .slide-section {
+            margin-bottom: 2.5rem;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h2::before {
+            content: "Slajd";
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 0.8rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        p {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            text-align: justify;
+            font-size: 1.05rem;
+        }
+
+        /* Styl podświetlenia wątpliwości */
+        .doubt-highlight {
+            background-color: #fef08a !important; /* Żółty tło */
+            border-bottom: 2px dashed #eab308; /* Pomarańczowa linia */
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        /* Stylizacja do druku */
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+            .toolbar {
+                display: none !important;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+                margin: 0;
+            }
+            h2 {
+                color: black;
+            }
+            h2::before {
+                background-color: #333;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Pasek narzędzi -->
+    <div class="toolbar">
+        <button class="highlight-btn" onclick="highlightText()">
+            <i data-lucide="highlighter" width="16" height="16"></i> Zaznacz wątpliwość
+        </button>
+        <button onclick="clearFormatting()">
+            <i data-lucide="eraser" width="16" height="16"></i> Wyczyść formatowanie
+        </button>
+        <div class="sync-status" id="sync-status">
+            <i data-lucide="cloud" width="16" height="16"></i> Łączenie...
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Zablokowany nagłówek -->
+        <div contenteditable="false">
+            <h1>Skrypt do prezentacji</h1>
+            <div class="subtitle">Gospodarka odpadami tekstylnymi - Wiktoria Łętowska, Szymon Zalewski</div>
+        </div>
+
+        <!-- Obszar edytowalny synchronizowany z bazą danych -->
+        <div id="editor-content" contenteditable="true" spellcheck="false">
+            <div class="slide-section">
+                <h2>1: Strona tytułowa</h2>
+                <p>Dzień dobry państwu. Nazywamy się Wiktoria Łętowska i Szymon Zalewski. Tematem naszego dzisiejszego wystąpienia jest gospodarka odpadami tekstylnymi. Omówimy ją w kontekście wyzwań, nadchodzących technologii i perspektyw w ramach Gospodarki Obiegu Zamkniętego (GOZ), ze szczególnym uwzględnieniem rozwiązań z zakresu inżynierii środowiska.</p>
+            </div>
+
+            <div class="slide-section">
+                <h2>2: Wstęp – skala problemu „Fast Fashion”</h2>
+                <p>Zacznijmy od skali problemu, do której doprowadził model "szybkiej mody". W samej Unii Europejskiej generujemy rocznie około 12,6 miliona ton odpadów tekstylnych, z których większość niestety trafia na wysypiska lub do spalarni. Zjawisko to potęguje fakt, że w ciągu ostatnich dwóch dekad średni czas użytkowania ubrań drastycznie spadł. To wszystko sprawia, że przemysł tekstylny jest obecnie czwartą najbardziej obciążającą środowisko branżą w Unii Europejskiej.</p>
+            </div>
+
+            <div class="slide-section">
+                <h2>3: Środowiskowe koszty cyklu życia ubrań</h2>
+                <p>Wpływ ubrań na środowisko to nie tylko odpady, ale także gigantyczny ślad wodny. Wyprodukowanie zaledwie jednego t-shirtu pochłania 2700 litrów wody – to ilość, którą dorosły człowiek wypija przez 2,5 roku. Z kolei zanieczyszczenia chemiczne związane z użyciem m.in. barwników i wybielaczy sprawiają, że przemysł włókienniczy odpowiada za 20% globalnego zanieczyszczenia czystej wody. Nie zapominajmy również o mikroplastiku – uwalnianie mikrowłókien syntetycznych podczas prania to jedno z głównych źródeł tego zanieczyszczenia w środowisku wodnym.</p>
+            </div>
+            
+            <div class="slide-section">
+                <h2>4: Skład i morfologia odpadów tekstylnych</h2>
+                <p>Gdy przyjrzymy się morfologii odpadów tekstylnych, zauważymy absolutną dominację tworzyw sztucznych. Poliester i inne syntetyki stanowią aż 62% materiałów, bawełna to 24%, wiskoza i celuloza – 8%, a jedwab czy wełna odpowiadają jedynie za pozostałe 6%. Największym inżynieryjnym wyzwaniem technologicznym w recyklingu nie są jednak czyste materiały, lecz skomplikowane mieszanki wielomateriałowe (na przykład poliester z bawełną i elastanem). Ich skuteczne rozdzielenie na frakcje bazowe pozostaje procesem skomplikowanym i bardzo energochłonnym.</p>
+            </div>
+
+            <div class="slide-section">
+                <h2>5: Ramy prawne kształtujące branżę (Timeline)</h2>
+                <p>Kluczowym powodem, dla którego temat ten jest obecnie tak pilny, są dynamicznie zmieniające się ramy prawne. Proces ten rozpoczęło ustanowienie hierarchii postępowania z odpadami w Dyrektywie Odpadowej z 2008 roku oraz Strategia UE z 2022 roku. Jednak przełomowym momentem jest rok 2025, który wprowadza bezwzględny obowiązek selektywnej zbiórki tekstyliów. Do 2030 roku branżę ostatecznie ukształtują regulacje dotyczące Rozszerzonej Odpowiedzialności Producenta (ROP) oraz wdrożenie Cyfrowego Paszportu Produktu (DPP).</p>
+            </div>
+
+            <div class="slide-section">
+                <h2>6: Technologie zbiórki i sortowania</h2>
+                <p>Aby sprostać nowym przepisom od 2025 roku, pojemniki na odzież stają się elementem tzw. twardej infrastruktury komunalnej, zupełnie tak jak pojemniki na plastik czy papier. Ze względu na nieefektywność sortowania ręcznego, przyszłością zakładów sortowniczych jest pełna automatyzacja i Sortowanie Optyczne (NIR). Zastosowanie spektroskopii w podczerwieni pozwala błyskawicznie rozpoznawać skład chemiczny włókien na taśmociągu, aby następnie pneumatycznie odrzucać zanieczyszczenia i dzielić materiał.</p>
+            </div>
+
+            <div class="slide-section">
+                <h2>7: Metody recyklingu tekstyliów – procesy inżynieryjne</h2>
+                <p>Obecnie dominujący recykling mechaniczny (np. fizyczne rozdrabnianie i rozwłóknianie bawełny) ma poważną wadę – skraca on włókna i obniża ich jakość w ramach tzw. downcyclingu, przez co materiał ten używany jest głównie do produkcji czyściwa lub mat izolacyjnych. Większe nadzieje pokłada się w recyklingu chemicznym – poprzez depolimeryzację włókien syntetycznych i rozpuszczanie celulozy pozwala on skutecznie odseparować mieszanki, gwarantując jakość pierwotną ("virgin"), choć wadą pozostają wysokie koszty i zapotrzebowanie na energię. Z kolei frakcje, których nie da się przetworzyć materiałowo, w ostateczności trafiają do cementowni na spalanie z odzyskiem ciepła jako Paliwo Alternatywne (RDF).</p>
+            </div>
+
+            <div class="slide-section">
+                <h2>8: Gospodarka Obiegu Zamkniętego (GOZ)</h2>
+                <p>Gospodarka Obiegu Zamkniętego (GOZ) w branży tekstylnej oznacza zmianę linearnego modelu "Weź-Wyprodukuj-Wyrzuć" na uniwersalną zasadę "Reduce, Reuse, Recycle". Niezwykle ważną rolę w tej pętli odgrywa eco-design, w tym projektowanie ubrań z monomateriałów oraz używanie innowacyjnych rozpuszczalnych nici ułatwiających dekonstrukcję odzieży. Równie istotny jest rozwój nowych modeli biznesowych na rynku drugiego obiegu, które obejmują wynajem ubrań, naprawy, upcykling oraz powstawanie cyfrowych platform sprzedażowych.</p>
+            </div>
+
+            <div class="slide-section">
+                <h2>9: Rola Inżyniera Środowiska w rozwiązaniu problemu</h2>
+                <p>Jako inżynierowie środowiska mamy przed sobą kluczowe zadania przybliżające nas do rozwiązania tego problemu. Dotyczy to projektowania nowoczesnych oczyszczalni zdolnych wychwytywać mikroplastik oraz trwałe barwniki pochodzące z procesów włókienniczych. Naszym zadaniem będzie również modelowanie nowoczesnych instalacji automatycznego sortowania i recyklingu chemicznego oraz prowadzenie Oceny Cyklu Życia (LCA) poprzez audyty służące obniżeniu śladu węglowego. Będziemy również brać czynny udział w badaniach nad nowymi, biodegradowalnymi materiałami, takimi jak włókna z alg, biomasy czy z grzybni.</p>
+            </div>
+
+            <div class="slide-section">
+                <h2>10: Podsumowanie i Perspektywy</h2>
+                <p>Podsumowując, rok 2025 to rok rewolucyjnych zmian. Wdrożenie oddzielnego systemu zbiórki ubrań to ogromne wyzwanie dla branży komunalnej. Technologie takie jak recykling chemiczny kryją gigantyczny potencjał, lecz wymagają komercjalizacji na szeroką skalę oraz pilnego obniżenia energochłonności inżynieryjnej. Skuteczna transformacja będzie możliwa wyłącznie poprzez współdziałanie interdyscyplinarne, od mądrego prawa bazującego na zasadzie "zanieczyszczający płaci", przez przemyślany eko-design, aż po zmiany naszych osobistych nawyków konsumenckich.</p>
+            </div>
+
+            <div class="slide-section">
+                <h2>11: Pytania i Dyskusja</h2>
+                <p>Na tym chcielibyśmy zakończyć naszą prezentację. Dziękujemy bardzo za uwagę i z przyjemnością odpowiemy teraz na wszelkie pytania z Państwa strony.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Funkcje edytora -->
+    <script>
+        lucide.createIcons();
+
+        // Podświetlanie wybranego tekstu (dodanie tła)
+        function highlightText() {
+            document.execCommand('styleWithCSS', false, true);
+            document.execCommand('hiliteColor', false, '#fef08a');
+            if (window.triggerSave) window.triggerSave();
+        }
+
+        // Czyszczenie formatowania
+        function clearFormatting() {
+            document.execCommand('removeFormat', false, null);
+            document.execCommand('hiliteColor', false, 'transparent');
+            document.execCommand('backColor', false, 'transparent');
+            if (window.triggerSave) window.triggerSave();
+        }
+
+        // Konfiguracja stanu UI
+        const statusEl = document.getElementById('sync-status');
+        function setStatus(status) {
+            if(status === 'saving') {
+                statusEl.innerHTML = '<i data-lucide="refresh-cw" class="animate-spin" width="16" height="16"></i> Zapisywanie...';
+            } else if (status === 'saved') {
+                statusEl.innerHTML = '<i data-lucide="check-circle" width="16" height="16" style="color: #10b981;"></i> Zapisano w chmurze';
+            } else if (status === 'error') {
+                statusEl.innerHTML = '<i data-lucide="alert-triangle" width="16" height="16" style="color: #ef4444;"></i> Błąd zapisu';
+            } else if (status === 'connected') {
+                statusEl.innerHTML = '<i data-lucide="cloud-snow" width="16" height="16"></i> Gotowe do edycji';
+            }
+            lucide.createIcons();
+        }
+    </script>
+
+    <!-- Moduł Firebase (Baza danych w czasie rzeczywistym) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Konfiguracja pobierana ze środowiska
+        let firebaseConfig = {};
+        try {
+            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            };
+        } catch(e) {}
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'skrypt-prezentacji-app';
+
+        if(Object.keys(firebaseConfig).length > 0) {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            const editorContent = document.getElementById('editor-content');
+            
+            // Ścieżka w bazie danych
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'presentation_scripts', 'main_script');
+
+            let saveTimeout;
+            let isUserEditing = false;
+            let currentUser = null;
+            let unsubscribeSnapshot = null;
+
+            // Inicjalizacja autoryzacji używając tokenu systemowego
+            const initAuth = async () => {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (e) {
+                    setStatus('error');
+                    console.error("Błąd uwierzytelniania:", e);
+                }
+            };
+
+            // Nasłuchiwanie stanu konta by rozpocząć operacje na Firestore DOPIERO po połączeniu
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                if (!user) {
+                    if (unsubscribeSnapshot) unsubscribeSnapshot();
+                    return;
+                }
+
+                setStatus('connected');
+
+                // Nasłuchuj zmian w bazie danych
+                unsubscribeSnapshot = onSnapshot(docRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.data();
+                        // Zaktualizuj widok TYLKO jeśli użytkownik obecnie w nim nie pisze 
+                        if (!isUserEditing && data.content && editorContent.innerHTML !== data.content) {
+                            editorContent.innerHTML = data.content;
+                        }
+                    }
+                }, (error) => {
+                    console.error("Błąd nasłuchiwania:", error);
+                    setStatus('error');
+                });
+
+                // Zapisz do bazy danych z opóźnieniem (debounce)
+                window.triggerSave = function() {
+                    if (!currentUser) return; // Zabezpieczenie przed brakiem autoryzacji
+                    setStatus('saving');
+                    clearTimeout(saveTimeout);
+                    saveTimeout = setTimeout(async () => {
+                        try {
+                            await setDoc(docRef, { 
+                                content: editorContent.innerHTML,
+                                lastUpdated: new Date().toISOString()
+                            });
+                            setStatus('saved');
+                        } catch(e) {
+                            setStatus('error');
+                            console.error(e);
+                        }
+                    }, 1500);
+                };
+            });
+
+            // Uruchomienie bezpiecznego logowania
+            initAuth();
+
+            // Śledzenie pisania
+            editorContent.addEventListener('input', () => {
+                if (window.triggerSave) window.triggerSave();
+            });
+
+            editorContent.addEventListener('focus', () => { isUserEditing = true; });
+            editorContent.addEventListener('blur', () => { isUserEditing = false; });
+
+        } else {
+            setStatus('error');
+            console.warn("Brak konfiguracji Firebase. Zmiany nie będą zapisywane w chmurze.");
+        }
+    </script>
+</body>
+</html>
