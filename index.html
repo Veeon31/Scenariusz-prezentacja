@@ -292,109 +292,131 @@
     </script>
 
     <!-- Moduł Firebase (Baza danych w czasie rzeczywistym) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // TUTAJ ZNAJDUJĄ SIĘ TWOJE KLUCZE FIREBASE:
-        const firebaseConfig = {
-            apiKey: "AIzaSyADPpYLYbKSjreYovVyJhmfSKvfLtONWA0",
-            authDomain: "scenariusz-55eae.firebaseapp.com",
-            projectId: "scenariusz-55eae",
-            storageBucket: "scenariusz-55eae.firebasestorage.app",
-            messagingSenderId: "333833727017",
-            appId: "1:333833727017:web:a742e52df5ddcb2b078038",
-            measurementId: "G-51V2FKLL2M"
-        };
+    const firebaseConfig = {
+        apiKey: "AIzaSyADPpYLYbKSjreYovVyJhmfSKvfLtONWA0",
+        authDomain: "scenariusz-55eae.firebaseapp.com",
+        projectId: "scenariusz-55eae",
+        storageBucket: "scenariusz-55eae.firebasestorage.app",
+        messagingSenderId: "333833727017",
+        appId: "1:333833727017:web:a742e52df5ddcb2b078038",
+        measurementId: "G-51V2FKLL2M"
+    };
 
-        const appId = 'skrypt-prezentacji-app';
+    const appId = 'skrypt-prezentacji-app';
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const editorContent = document.getElementById('editor-content');
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'presentation_scripts', 'main_script');
 
-        if(Object.keys(firebaseConfig).length > 0) {
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
-            const db = getFirestore(app);
+    let saveTimeout;
+    let currentUser = null;
 
-            const editorContent = document.getElementById('editor-content');
-            
-            // Ścieżka w bazie danych
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'presentation_scripts', 'main_script');
+    // --- FUNKCJE POMOCNICZE DLA KURSORA ---
+    function saveSelection(containerEl) {
+        const sel = window.getSelection();
+        if (sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            const preSelectionRange = range.cloneRange();
+            preSelectionRange.selectNodeContents(containerEl);
+            preSelectionRange.setEnd(range.startContainer, range.startOffset);
+            const start = preSelectionRange.toString().length;
 
-            let saveTimeout;
-            let isUserEditing = false;
-            let currentUser = null;
-            let unsubscribeSnapshot = null;
-
-            // Inicjalizacja autoryzacji
-            const initAuth = async () => {
-                try {
-                    // Logowanie anonimowe
-                    await signInAnonymously(auth);
-                } catch (e) {
-                    setStatus('auth-error');
-                    console.error("Błąd uwierzytelniania. Upewnij się, że włączyłeś logowanie 'Anonimowe' w Firebase Authentication:", e);
-                }
+            return {
+                start: start,
+                end: start + range.toString().length
             };
-
-            // Nasłuchiwanie stanu konta by rozpocząć operacje na Firestore DOPIERO po połączeniu
-            onAuthStateChanged(auth, (user) => {
-                currentUser = user;
-                if (!user) {
-                    if (unsubscribeSnapshot) unsubscribeSnapshot();
-                    return;
-                }
-
-                setStatus('connected');
-
-                // Nasłuchuj zmian w bazie danych
-                unsubscribeSnapshot = onSnapshot(docRef, (snapshot) => {
-                    if (snapshot.exists()) {
-                        const data = snapshot.data();
-                        // Zaktualizuj widok TYLKO jeśli użytkownik obecnie w nim nie pisze 
-                        if (!isUserEditing && data.content && editorContent.innerHTML !== data.content) {
-                            editorContent.innerHTML = data.content;
-                        }
-                    }
-                }, (error) => {
-                    console.error("Błąd nasłuchiwania:", error);
-                    setStatus('error');
-                });
-
-                // Zapisz do bazy danych z opóźnieniem (debounce)
-                window.triggerSave = function() {
-                    if (!currentUser) return; // Zabezpieczenie przed brakiem autoryzacji
-                    setStatus('saving');
-                    clearTimeout(saveTimeout);
-                    saveTimeout = setTimeout(async () => {
-                        try {
-                            await setDoc(docRef, { 
-                                content: editorContent.innerHTML,
-                                lastUpdated: new Date().toISOString()
-                            });
-                            setStatus('saved');
-                        } catch(e) {
-                            setStatus('error');
-                            console.error(e);
-                        }
-                    }, 1500);
-                };
-            });
-
-            // Uruchomienie bezpiecznego logowania
-            initAuth();
-
-            // Śledzenie pisania
-            editorContent.addEventListener('input', () => {
-                if (window.triggerSave) window.triggerSave();
-            });
-
-            editorContent.addEventListener('focus', () => { isUserEditing = true; });
-            editorContent.addEventListener('blur', () => { isUserEditing = false; });
-
-        } else {
-            setStatus('error');
-            console.warn("Brak konfiguracji Firebase. Zmiany nie będą zapisywane w chmurze.");
         }
-    </script>
+        return null;
+    }
+
+    function restoreSelection(containerEl, savedSel) {
+        if (!savedSel) return;
+        const charIndex = { count: 0 };
+        const range = document.createRange();
+        range.setStart(containerEl, 0);
+        range.collapse(true);
+        const nodeStack = [containerEl];
+        let node, foundStart = false, stop = false;
+
+        while (!stop && (node = nodeStack.pop())) {
+            if (node.nodeType === 3) {
+                const nextCharIndex = charIndex.count + node.length;
+                if (!foundStart && savedSel.start >= charIndex.count && savedSel.start <= nextCharIndex) {
+                    range.setStart(node, savedSel.start - charIndex.count);
+                    foundStart = true;
+                }
+                if (foundStart && savedSel.end >= charIndex.count && savedSel.end <= nextCharIndex) {
+                    range.setEnd(node, savedSel.end - charIndex.count);
+                    stop = true;
+                }
+                charIndex.count = nextCharIndex;
+            } else {
+                let i = node.childNodes.length;
+                while (i--) { nodeStack.push(node.childNodes[i]); }
+            }
+        }
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
+
+    // --- GŁÓWNA LOGIKA SYNC ---
+    onAuthStateChanged(auth, (user) => {
+        if (!user) {
+            signInAnonymously(auth).catch(() => setStatus('auth-error'));
+            return;
+        }
+        currentUser = user;
+        setStatus('connected');
+
+        // NASŁUCHIWANIE LIVE
+        onSnapshot(docRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                const newHTML = data.content;
+
+                // Aktualizuj tylko jeśli treść się różni
+                if (editorContent.innerHTML !== newHTML) {
+                    const isFocused = document.activeElement === editorContent;
+                    let selection;
+
+                    if (isFocused) selection = saveSelection(editorContent);
+                    
+                    editorContent.innerHTML = newHTML; // Podmiana treści
+                    
+                    if (isFocused) restoreSelection(editorContent, selection);
+                }
+            }
+        });
+
+        // ZAPISYWANIE
+        window.triggerSave = function() {
+            setStatus('saving');
+            clearTimeout(saveTimeout);
+            // Zmniejszono opóźnienie do 500ms dla lepszego wrażenia "live"
+            saveTimeout = setTimeout(async () => {
+                try {
+                    await setDoc(docRef, { 
+                        content: editorContent.innerHTML,
+                        lastUpdated: new Date().toISOString(),
+                        author: currentUser.uid
+                    });
+                    setStatus('saved');
+                } catch(e) {
+                    setStatus('error');
+                    console.error("Błąd zapisu:", e);
+                }
+            }, 500);
+        };
+    });
+
+    editorContent.addEventListener('input', () => window.triggerSave());
+</script>
 </body>
 </html>
