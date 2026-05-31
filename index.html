@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skrypt Prezentacji: Gospodarka odpadami tekstylnymi</title>
+    <title>LIVE: Skrypt Prezentacji</title>
     <!-- Ikony -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -22,10 +22,9 @@
             background-color: var(--bg-color);
             margin: 0;
             padding: 0;
-            padding-top: 80px; /* Miejsce na toolbar */
+            padding-top: 80px;
         }
 
-        /* Pasek narzędzi do edycji */
         .toolbar {
             position: fixed;
             top: 0;
@@ -52,22 +51,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 0.9rem;
             transition: all 0.2s;
-        }
-
-        .toolbar button:hover {
-            background-color: #4b5563;
-        }
-
-        .toolbar button.highlight-btn {
-            background-color: #fbbf24;
-            color: #78350f;
-            border-color: #f59e0b;
-            font-weight: bold;
-        }
-        .toolbar button.highlight-btn:hover {
-            background-color: #f59e0b;
         }
 
         .sync-status {
@@ -86,102 +70,74 @@
             padding: 3rem;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            outline: none; /* Usuwa obramowanie przy kliknięciu w trybie edycji */
+            position: relative; /* Dla pozycjonowania kursorów */
         }
 
-        /* Subtelny wskaźnik, że można edytować */
+        #editor-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
         #editor-content {
             min-height: 50vh;
             outline: none;
-            transition: background-color 0.3s;
+            padding: 10px;
         }
+
         #editor-content:focus {
             background-color: #f8fafc;
-            border-radius: 8px;
-            box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.2);
-            padding: 10px -10px;
         }
 
-        h1 {
-            text-align: center;
-            color: #111827;
-            margin-bottom: 0.5rem;
-            font-size: 2rem;
+        /* STYL KURSORA INNYCH UŻYTKOWNIKÓW */
+        .remote-cursor {
+            position: absolute;
+            width: 3px;
+            height: 20px;
+            pointer-events: none;
+            z-index: 500;
+            transition: all 0.08s ease-out;
         }
 
-        .subtitle {
-            text-align: center;
-            color: #6b7280;
-            font-size: 1.1rem;
-            margin-bottom: 3rem;
-            padding-bottom: 2rem;
-            border-bottom: 2px solid #e5e7eb;
+        .remote-cursor-dot {
+            position: absolute;
+            top: -10px;
+            left: -5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 4px rgba(0,0,0,0.4);
         }
 
-        .slide-section {
-            margin-bottom: 2.5rem;
-        }
-
-        h2 {
-            color: var(--primary-color);
-            font-size: 1.25rem;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        h2::before {
-            content: "Slajd";
-            background-color: var(--primary-color);
+        .remote-cursor-label {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            padding: 2px 6px;
             color: white;
-            font-size: 0.8rem;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            font-size: 10px;
+            white-space: nowrap;
+            border-radius: 3px;
+            font-weight: bold;
         }
 
-        p {
-            margin-top: 0;
-            margin-bottom: 1rem;
-            text-align: justify;
-            font-size: 1.05rem;
-        }
+        h1 { text-align: center; color: #111827; }
+        .subtitle { text-align: center; color: #6b7280; margin-bottom: 2rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; }
+        h2 { color: var(--primary-color); display: flex; align-items: center; gap: 0.5rem; }
+        h2::before { content: "Slajd"; background-color: var(--primary-color); color: white; font-size: 0.7rem; padding: 2px 5px; border-radius: 4px; }
+        p { text-align: justify; }
 
-        /* Stylizacja do druku */
-        @media print {
-            body {
-                background-color: white;
-                padding: 0;
-            }
-            .toolbar {
-                display: none !important;
-            }
-            .container {
-                box-shadow: none;
-                padding: 0;
-                max-width: 100%;
-                margin: 0;
-            }
-            h2 {
-                color: black;
-            }
-            h2::before {
-                background-color: #333;
-            }
-        }
+        @media print { .toolbar { display: none; } .container { box-shadow: none; } }
     </style>
 </head>
 <body>
 
-    <!-- Pasek narzędzi -->
     <div class="toolbar">
         <button class="highlight-btn" onclick="highlightText()">
-            <i data-lucide="highlighter" width="16" height="16"></i> Zaznacz wątpliwość
+            <i data-lucide="highlighter" width="16" height="16"></i> Podświetl
         </button>
         <button onclick="clearFormatting()">
-            <i data-lucide="eraser" width="16" height="16"></i> Wyczyść formatowanie
+            <i data-lucide="eraser" width="16" height="16"></i> Wyczyść
         </button>
         <div class="sync-status" id="sync-status">
             <i data-lucide="cloud" width="16" height="16"></i> Łączenie...
@@ -189,14 +145,15 @@
     </div>
 
     <div class="container">
-        <!-- Zablokowany nagłówek -->
         <div contenteditable="false">
             <h1>Skrypt do prezentacji</h1>
             <div class="subtitle">Gospodarka odpadami tekstylnymi - Wiktoria Łętowska, Szymon Zalewski</div>
         </div>
 
-        <!-- Obszar edytowalny synchronizowany z bazą danych -->
-        <div id="editor-content" contenteditable="true" spellcheck="false">
+        <div id="editor-wrapper">
+            <div id="cursors-layer"></div>
+            <div id="editor-content" contenteditable="true" spellcheck="false">
+                        <div id="editor-content" contenteditable="true" spellcheck="false">
             <div class="slide-section">
                 <h2>1: Strona tytułowa</h2>
                 <p>Dzień dobry państwu. Nazywamy się Wiktoria Łętowska i Szymon Zalewski. Tematem naszego dzisiejszego wystąpienia jest gospodarka odpadami tekstylnymi. Omówimy ją w kontekście wyzwań, nadchodzących technologii i perspektyw w ramach Gospodarki Obiegu Zamkniętego (GOZ), ze szczególnym uwzględnieniem rozwiązań z zakresu inżynierii środowiska.</p>
@@ -254,169 +211,180 @@
         </div>
     </div>
 
-    <!-- Funkcje edytora -->
     <script>
         lucide.createIcons();
-
-        // Podświetlanie wybranego tekstu (dodanie tła)
         function highlightText() {
             document.execCommand('styleWithCSS', false, true);
             document.execCommand('hiliteColor', false, '#fef08a');
             if (window.triggerSave) window.triggerSave();
         }
-
-        // Czyszczenie formatowania
         function clearFormatting() {
             document.execCommand('removeFormat', false, null);
             document.execCommand('hiliteColor', false, 'transparent');
-            document.execCommand('backColor', false, 'transparent');
             if (window.triggerSave) window.triggerSave();
-        }
-
-        // Konfiguracja stanu UI
-        const statusEl = document.getElementById('sync-status');
-        function setStatus(status) {
-            if(status === 'saving') {
-                statusEl.innerHTML = '<i data-lucide="refresh-cw" class="animate-spin" width="16" height="16"></i> Zapisywanie...';
-            } else if (status === 'saved') {
-                statusEl.innerHTML = '<i data-lucide="check-circle" width="16" height="16" style="color: #10b981;"></i> Zapisano w chmurze';
-            } else if (status === 'error') {
-                statusEl.innerHTML = '<i data-lucide="alert-triangle" width="16" height="16" style="color: #ef4444;"></i> Brak uprawnień do bazy (Reguły)';
-            } else if (status === 'auth-error') {
-                statusEl.innerHTML = '<i data-lucide="shield-alert" width="16" height="16" style="color: #ef4444;"></i> Błąd autoryzacji (Sprawdź Auth)';
-            } else if (status === 'connected') {
-                statusEl.innerHTML = '<i data-lucide="cloud-snow" width="16" height="16"></i> Gotowe do edycji';
-            }
-            lucide.createIcons();
         }
     </script>
 
-    <!-- Moduł Firebase (Baza danych w czasie rzeczywistym) -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyADPpYLYbKSjreYovVyJhmfSKvfLtONWA0",
-        authDomain: "scenariusz-55eae.firebaseapp.com",
-        projectId: "scenariusz-55eae",
-        storageBucket: "scenariusz-55eae.firebasestorage.app",
-        messagingSenderId: "333833727017",
-        appId: "1:333833727017:web:a742e52df5ddcb2b078038",
-        measurementId: "G-51V2FKLL2M"
-    };
+        const firebaseConfig = {
+            apiKey: "AIzaSyADPpYLYbKSjreYovVyJhmfSKvfLtONWA0",
+            authDomain: "scenariusz-55eae.firebaseapp.com",
+            projectId: "scenariusz-55eae",
+            storageBucket: "scenariusz-55eae.firebasestorage.app",
+            messagingSenderId: "333833727017",
+            appId: "1:333833727017:web:a742e52df5ddcb2b078038"
+        };
 
-    const appId = 'skrypt-prezentacji-app';
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const editorContent = document.getElementById('editor-content');
-    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'presentation_scripts', 'main_script');
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const editorContent = document.getElementById('editor-content');
+        const cursorsLayer = document.getElementById('cursors-layer');
+        const statusEl = document.getElementById('sync-status');
+        
+        const docRef = doc(db, 'artifacts', 'main_script');
+        const presenceCol = collection(db, 'presence');
 
-    let saveTimeout;
-    let currentUser = null;
+        let currentUser = null;
+        let myColor = `hsl(${Math.random() * 360}, 70%, 50%)`;
+        let saveTimeout;
 
-    // --- FUNKCJE POMOCNICZE DLA KURSORA ---
-    function saveSelection(containerEl) {
-        const sel = window.getSelection();
-        if (sel.rangeCount > 0) {
-            const range = sel.getRangeAt(0);
-            const preSelectionRange = range.cloneRange();
-            preSelectionRange.selectNodeContents(containerEl);
-            preSelectionRange.setEnd(range.startContainer, range.startOffset);
-            const start = preSelectionRange.toString().length;
+        function setStatus(status) {
+            if(status === 'saving') statusEl.innerHTML = 'Zapisywanie...';
+            else if (status === 'saved') statusEl.innerHTML = '✓ Zapisano';
+            else if (status === 'connected') statusEl.innerHTML = '● Live / Połączono';
+        }
 
-            return {
-                start: start,
-                end: start + range.toString().length
+        // --- OBSŁUGA POZYCJI KURSORA ---
+        function getCaretCoordinates() {
+            const sel = window.getSelection();
+            if (!sel.rangeCount) return null;
+            const range = sel.getRangeAt(0).cloneRange();
+            const rects = range.getClientRects();
+            if (rects.length > 0) {
+                const editorRect = document.getElementById('editor-wrapper').getBoundingClientRect();
+                return {
+                    x: rects[0].left - editorRect.left,
+                    y: rects[0].top - editorRect.top
+                };
+            }
+            return null;
+        }
+
+        // --- FUNKCJE SYNC TEKSTU ---
+        function getOffset(el) {
+            const sel = window.getSelection();
+            if (sel.rangeCount > 0) {
+                const range = sel.getRangeAt(0);
+                const preRange = range.cloneRange();
+                preRange.selectNodeContents(el);
+                preRange.setEnd(range.startContainer, range.startOffset);
+                return preRange.toString().length;
+            }
+            return 0;
+        }
+
+        function setOffset(el, offset) {
+            const range = document.createRange();
+            const sel = window.getSelection();
+            let currentOffset = 0;
+            const nodeStack = [el];
+            let node, found = false;
+
+            while (!found && (node = nodeStack.pop())) {
+                if (node.nodeType === 3) {
+                    const nextOffset = currentOffset + node.length;
+                    if (offset >= currentOffset && offset <= nextOffset) {
+                        range.setStart(node, offset - currentOffset);
+                        range.collapse(true);
+                        found = true;
+                    }
+                    currentOffset = nextOffset;
+                } else {
+                    for (let i = node.childNodes.length - 1; i >= 0; i--) nodeStack.push(node.childNodes[i]);
+                }
+            }
+            if (found) { sel.removeAllRanges(); sel.addRange(range); }
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { await signInAnonymously(auth); return; }
+            currentUser = user;
+            setStatus('connected');
+
+            // 1. ODBIERANIE TREŚCI (LIVE)
+            onSnapshot(docRef, (snap) => {
+                if (snap.exists() && snap.data().author !== currentUser.uid) {
+                    const data = snap.data();
+                    if (editorContent.innerHTML !== data.content) {
+                        const isFocused = document.activeElement === editorContent;
+                        const offset = isFocused ? getOffset(editorContent) : null;
+                        editorContent.innerHTML = data.content;
+                        if (isFocused) setOffset(editorContent, offset);
+                    }
+                }
+            });
+
+            // 2. ODBIERANIE KURSORÓW INNYCH
+            onSnapshot(presenceCol, (snap) => {
+                cursorsLayer.innerHTML = '';
+                snap.forEach(doc => {
+                    if (doc.id !== currentUser.uid) {
+                        const d = doc.data();
+                        if (Date.now() - d.lastSeen < 10000) { // Tylko aktywne w ost. 10s
+                            const cursor = document.createElement('div');
+                            cursor.className = 'remote-cursor';
+                            cursor.style.left = d.x + 'px';
+                            cursor.style.top = d.y + 'px';
+                            cursor.style.backgroundColor = d.color;
+                            cursor.innerHTML = `<div class="remote-cursor-dot" style="background:${d.color}"></div>
+                                                <div class="remote-cursor-label" style="background:${d.color}">Edytuje...</div>`;
+                            cursorsLayer.appendChild(cursor);
+                        }
+                    }
+                });
+            });
+
+            // 3. WYSYŁANIE MOJEJ POZYCJI
+            const sendPresence = () => {
+                const coords = getCaretCoordinates();
+                if (coords) {
+                    setDoc(doc(db, 'presence', currentUser.uid), {
+                        x: coords.x, y: coords.y, color: myColor, lastSeen: Date.now()
+                    }, { merge: true });
+                }
             };
-        }
-        return null;
-    }
 
-    function restoreSelection(containerEl, savedSel) {
-        if (!savedSel) return;
-        const charIndex = { count: 0 };
-        const range = document.createRange();
-        range.setStart(containerEl, 0);
-        range.collapse(true);
-        const nodeStack = [containerEl];
-        let node, foundStart = false, stop = false;
-
-        while (!stop && (node = nodeStack.pop())) {
-            if (node.nodeType === 3) {
-                const nextCharIndex = charIndex.count + node.length;
-                if (!foundStart && savedSel.start >= charIndex.count && savedSel.start <= nextCharIndex) {
-                    range.setStart(node, savedSel.start - charIndex.count);
-                    foundStart = true;
-                }
-                if (foundStart && savedSel.end >= charIndex.count && savedSel.end <= nextCharIndex) {
-                    range.setEnd(node, savedSel.end - charIndex.count);
-                    stop = true;
-                }
-                charIndex.count = nextCharIndex;
-            } else {
-                let i = node.childNodes.length;
-                while (i--) { nodeStack.push(node.childNodes[i]); }
-            }
-        }
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
-    }
-
-    // --- GŁÓWNA LOGIKA SYNC ---
-    onAuthStateChanged(auth, (user) => {
-        if (!user) {
-            signInAnonymously(auth).catch(() => setStatus('auth-error'));
-            return;
-        }
-        currentUser = user;
-        setStatus('connected');
-
-        // NASŁUCHIWANIE LIVE
-        onSnapshot(docRef, (snapshot) => {
-            if (snapshot.exists()) {
-                const data = snapshot.data();
-                const newHTML = data.content;
-
-                // Aktualizuj tylko jeśli treść się różni
-                if (editorContent.innerHTML !== newHTML) {
-                    const isFocused = document.activeElement === editorContent;
-                    let selection;
-
-                    if (isFocused) selection = saveSelection(editorContent);
-                    
-                    editorContent.innerHTML = newHTML; // Podmiana treści
-                    
-                    if (isFocused) restoreSelection(editorContent, selection);
-                }
-            }
+            editorContent.addEventListener('keyup', sendPresence);
+            editorContent.addEventListener('mousedown', () => setTimeout(sendPresence, 50));
         });
 
-        // ZAPISYWANIE
-        window.triggerSave = function() {
+        // 4. BŁYSKAWICZNY ZAPIS (50ms)
+        window.triggerSave = () => {
             setStatus('saving');
             clearTimeout(saveTimeout);
-            // Zmniejszono opóźnienie do 500ms dla lepszego wrażenia "live"
             saveTimeout = setTimeout(async () => {
                 try {
-                    await setDoc(docRef, { 
+                    await setDoc(docRef, {
                         content: editorContent.innerHTML,
-                        lastUpdated: new Date().toISOString(),
-                        author: currentUser.uid
+                        author: currentUser.uid,
+                        lastUpdated: Date.now()
                     });
                     setStatus('saved');
-                } catch(e) {
-                    setStatus('error');
-                    console.error("Błąd zapisu:", e);
-                }
-            }, 500);
+                } catch (e) { setStatus('error'); }
+            }, 50); 
         };
-    });
 
-    editorContent.addEventListener('input', () => window.triggerSave());
-</script>
+        editorContent.addEventListener('input', window.triggerSave);
+
+        // Usuń kursor przy wyjściu
+        window.addEventListener('beforeunload', () => {
+            if (currentUser) deleteDoc(doc(db, 'presence', currentUser.uid));
+        });
+    </script>
 </body>
 </html>
